@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JAI CLUB</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/png" href="LOGO/logo.png">
+</head>
+<body>
+
+    <!-- ============ HEADER ============ -->
+    <header>
+        <nav class="nav">
+            <a href="index.html" class="brand">
+                <img src="LOGO/logo.png" alt="JAI CLUB Logo">
+                <div class="brand-text">
+                    <span class="brand-name">JAI CLUB</span>
+                    <span class="brand-tag">Support Center</span>
+                </div>
+            </a>
+        </nav>
+    </header>
+
+    <!-- ============ HOME — SIRF 7 PROBLEM OPTIONS ============ -->
+    <main class="home">
+        <div class="home-logo">
+            <img src="LOGO/ICONS/BIG LOGO.jpg" alt="JAI CLUB Big Logo">
+        </div>
+        <div class="opt-grid">
+
+            <button class="opt-tile" data-opt="deposit">
+                <span class="opt-img">
+                    <img src="LOGO/ICONS/DEPOSITE-ICON.jpg" alt="Deposit">
+                </span>
+                <span class="opt-label">Deposit Problem</span>
+            </button>
+
+            <button class="opt-tile" data-opt="withdraw">
+                <span class="opt-img">
+                    <img src="LOGO/ICONS/WITHDRWAL-ICON.jpg" alt="Withdrawal">
+                </span>
+                <span class="opt-label">Withdrawal Problem</span>
+            </button>
+
+            <button class="opt-tile" data-opt="game">
+                <span class="opt-img">
+                    <img src="LOGO/ICONS/GAME PROBLEM.jpg" alt="Game">
+                </span>
+                <span class="opt-label">Game Problem</span>
+            </button>
+
+            <button class="opt-tile" data-opt="bank">
+                <span class="opt-img">
+                    <img src="LOGO/ICONS/BANK-CHAE.jpg" alt="Bank Change">
+                </span>
+                <span class="opt-label">Bank Details Change</span>
+            </button>
+
+            <button class="opt-tile" data-opt="password">
+                <span class="opt-img">
+                    <img src="LOGO/ICONS/LOCK.jpg" alt="Password">
+                </span>
+                <span class="opt-label">Password Change / Reset</span>
+            </button>
+
+            <button class="opt-tile" data-opt="chat">
+                <span class="opt-img">
+                    <img src="LOGO/ICONS/ONLLINE-CHAT.jpg" alt="Chat">
+                </span>
+                <span class="opt-label">Online Chat</span>
+            </button>
+
+        </div>
+    </main>
+
+    <!-- ============ FOOTER ============ -->
+    <footer>
+        <a href="index.html" class="brand">
+            <img src="LOGO/logo.png" alt="JAI CLUB Logo">
+            <span class="brand-name">JAI CLUB</span>
+        </a>
+        <p>© <span id="year"></span> JAI CLUB — Support Center</p>
+    </footer>
+
+    <!-- ============ DEPOSIT PROBLEM SCREEN ============ -->
+    <section id="depositScreen" class="problem-screen">
+        <div class="ps-top">
+            <button class="back-btn" onclick="closeFlow('d')">‹</button>
+            <h2>Deposit Problem</h2>
+            <div class="ps-img"><img src="LOGO/ICONS/DEPOSITE-ICON.jpg" alt="Deposit"></div>
+        </div>
+
+        <!-- STEP BAR -->
+        <div class="step-bar">
+            <div class="step-dot active" id="sdT">1</div>
+            <div class="step-line"></div>
+            <div class="step-dot" id="sd1">2</div>
+            <div class="step-line"></div>
+            <div class="step-dot" id="sd2">3</div>
+            <div class="step-line"></div>
+            <div class="step-dot" id="sd3">4</div>
+        </div>
+
+        <!-- STEP 0: PROBLEM TYPE SELECT -->
+        <div class="ps-body" id="stepT">
+            <h3>Select Your Problem Type</h3>
+            <div class="type-grid" id="typeGridD">
+                <button class="type-opt" data-type="Pending" onclick="selType(this,'d')">Pending</button>
+                <button class="type-opt" data-type="Rejected" onclick="selType(this,'d')">Rejected</button>
+                <button class="type-opt" data-type="Processing" onclick="selType(this,'d')">Processing</button>
+                <button class="type-opt" data-type="Success But Not Received" onclick="selType(this,'d')">Success But Not Received Game Account</button>
+            </div>
+            <button class="btn btn-next" onclick="nextStep('d',1)">Next</button>
+        </div>
+
+        <!-- STEP 1: USER DETAILS -->
+        <div class="ps-body hidden" id="step1">
+            <h3>Step 1 — Your Details</h3>
+            <label class="f-label">User Name</label>
+            <input class="f-input" type="text" id="depUsername" placeholder="Enter your user name">
+            <label class="f-label">Game ID</label>
+            <input class="f-input" type="text" id="depGameId" placeholder="Enter your game ID">
+            <div class="btn-row">
+                <button class="btn btn-ghost" onclick="goStep('d',0)">Back</button>
+                <button class="btn btn-next" onclick="nextStep('d',2)">Next</button>
+            </div>
+        </div>
+
+        <!-- STEP 2: ACCOUNT VERIFICATION -->
+        <div class="ps-body hidden" id="step2">
+            <h3>Step 2 — Account Verification</h3>
+            <label class="f-label">Registered Mobile Number</label>
+            <input class="f-input" type="tel" id="depMobile" placeholder="Enter registered mobile number" maxlength="10" inputmode="numeric" oninput="onlyDigits(this)">
+            <label class="f-label">Game Password</label>
+            <input class="f-input" type="password" id="depPass" placeholder="Enter your game password">
+            <label class="f-label">UTR Number</label>
+            <input class="f-input" type="text" id="depUtr" placeholder="Enter UTR number">
+            <label class="f-label">Payment Image (Screenshot)</label>
+            <label class="upload-box" for="depImg">
+                <span id="depImgText">Tap to upload payment screenshot</span>
+                <input type="file" id="depImg" accept="image/*" hidden onchange="setImgName(this,'d')">
+            </label>
+            <div class="btn-row">
+                <button class="btn btn-ghost" onclick="goStep('d',1)">Back</button>
+                <button class="btn btn-next" onclick="nextStep('d',3)">Next</button>
+            </div>
+        </div>
+
+        <!-- STEP 3: MORE DETAILS -->
+        <div class="ps-body hidden" id="step3">
+            <h3>Step 3 — More Details</h3>
+            <label class="f-label">Describe Your Problem</label>
+            <textarea class="f-input f-area" id="depExtra" placeholder="Write any extra details about your deposit problem..."></textarea>
+            <div class="btn-row">
+                <button class="btn btn-ghost" onclick="goStep('d',2)">Back</button>
+                <button class="btn btn-pink btn-complain" onclick="submitComplain('d')">COMPLAIN NOW</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ WITHDRAWAL PROBLEM SCREEN ============ -->
+    <section id="withdrawScreen" class="problem-screen">
+        <div class="ps-top">
+            <button class="back-btn" onclick="closeFlow('w')">‹</button>
+            <h2>Withdrawal Problem</h2>
+            <div class="ps-img"><img src="LOGO/ICONS/WITHDRWAL-ICON.jpg" alt="Withdrawal"></div>
+        </div>
+
+        <!-- STEP BAR -->
+        <div class="step-bar">
+            <div class="step-dot active" id="wsdT">1</div>
+            <div class="step-line"></div>
+            <div class="step-dot" id="wsd1">2</div>
+            <div class="step-line"></div>
+            <div class="step-dot" id="wsd2">3</div>
+            <div class="step-line"></div>
+            <div class="step-dot" id="wsd3">4</div>
+        </div>
+
+        <!-- STEP 0: PROBLEM TYPE SELECT -->
+        <div class="ps-body" id="wstepT">
+            <h3>Select Your Problem Type</h3>
+            <div class="type-grid" id="buttonGridW">
+                <button class="type-opt" data-type="Pending" onclick="selType(this,'w')">Pending</button>
+                <button class="type-opt" data-type="Rejected" onclick="selType(this,'w')">Rejected</button>
+                <button class="type-opt" data-type="Processing" onclick="selType(this,'w')">Processing</button>
+                <button class="type-opt" data-type="Success But Not Received" onclick="selType(this,'w')">Success But Not Received Bank Account</button>
+            </div>
+            <button class="btn btn-next" onclick="nextStep('w',1)">Next</button>
+        </div>
+
+        <!-- STEP 1: USER DETAILS -->
+        <div class="ps-body hidden" id="wstep1">
+            <h3>Step 1 — Your Details</h3>
+            <label class="f-label">User Name</label>
+            <input class="f-input" type="text" id="wdUsername" placeholder="Enter your user name">
+            <label class="f-label">Game ID</label>
+            <input class="f-input" type="text" id="wdGameId" placeholder="Enter your game ID">
+            <div class="btn-row">
+                <button class="btn btn-ghost" onclick="goStep('w',0)">Back</button>
+                <button class="btn btn-next" onclick="nextStep('w',2)">Next</button>
+            </div>
+        </div>
+
+        <!-- STEP 2: ACCOUNT VERIFICATION -->
+        <div class="ps-body hidden" id="wstep2">
+            <h3>Step 2 — Account Verification</h3>
+            <label class="f-label">Registered Mobile Number</label>
+            <input class="f-input" type="tel" id="wdMobile" placeholder="Enter registered mobile number" maxlength="10" inputmode="numeric" oninput="onlyDigits(this)">
+            <label class="f-label">Game Password</label>
+            <input class="f-input" type="password" id="wdPass" placeholder="Enter your game password">
+            <label class="f-label">Withdrawal Problem Image</label>
+            <label class="upload-box" for="wdImg">
+                <span id="wdImgText">Click to upload withdrawal problem image</span>
+                <input type="file" id="wdImg" accept="image/*" hidden onchange="setImgName(this,'w')">
+            </label>
+            <div class="btn-row">
+                <button class="btn btn-ghost" onclick="goStep('w',1)">Back</button>
+                <button class="btn btn-next" onclick="nextStep('w',3)">Next</button>
+            </div>
+        </div>
+
+        <!-- STEP 3: MORE DETAILS -->
+        <div class="ps-body hidden" id="wstep3">
+            <h3>Step 3 — More Details</h3>
+            <label class="f-label">Describe Your Problem</label>
+            <textarea class="f-input f-area" id="wdExtra" placeholder="Write any extra details about your withdrawal problem..."></textarea>
+            <div class="btn-row">
+                <button class="btn btn-ghost" onclick="goStep('w',2)">Back</button>
+                <button class="btn btn-pink btn-complain" onclick="submitComplain('w')">COMPLAIN NOW</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ PASSWORD CHANGE / RESET SCREEN ============ -->
+    <section id="passScreen" class="problem-screen">
+        <div class="ps-top">
+            <button class="back-btn" onclick="closeFlow('p')">‹</button>
+            <h2>Password Change / Reset</h2>
+            <div class="ps-img"><img src="LOGO/ICONS/LOCK.jpg" alt="Password"></div>
+        </div>
+
+        <div class="ps-body" id="pstep1">
+            <h3>Change or Reset Password</h3>
+
+            <label class="f-label">Email</label>
+            <input class="f-input" type="email" id="pEmail" placeholder="Please enter Email">
+
+            <label class="f-label">Registered Phone Number</label>
+            <input class="f-input" type="tel" id="pMobile" placeholder="Enter registered phone number" maxlength="10" inputmode="numeric" oninput="onlyDigits(this)">
+
+            <label class="f-label">Current Password</label>
+            <input class="f-input" type="password" id="pCurrent" placeholder="Please enter current password">
+
+            <label class="f-label">New Password</label>
+            <input class="f-input" type="password" id="pNew" placeholder="Enter new password">
+
+            <div class="btn-row">
+                <button class="btn btn-pink btn-complain" onclick="submitPassword()">CONFIRM</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ BANK CHANGE DETAILS SCREEN ============ -->
+    <section id="bankScreen" class="problem-screen">
+        <div class="ps-top">
+            <button class="back-btn" onclick="closeFlow('b')">‹</button>
+            <h2>Bank Details Change</h2>
+            <div class="ps-img"><img src="LOGO/ICONS/BANK-CHAE.jpg" alt="Bank Change"></div>
+        </div>
+
+        <div class="ps-body" id="bstep1">
+            <h3>Report Your Bank Details Change Problem</h3>
+
+            <label class="f-label">Email ID</label>
+            <input class="f-input" type="email" id="bkEmail" placeholder="Enter your email ID">
+
+            <label class="f-label">Account Verification</label>
+            <label class="f-label sub">Registered Mobile Number</label>
+            <input class="f-input" type="tel" id="bkMobile" placeholder="Enter registered mobile number" maxlength="10" inputmode="numeric" oninput="onlyDigits(this)">
+            <label class="f-label sub">Game Password</label>
+            <input class="f-input" type="password" id="bkPass" placeholder="Enter your game password">
+
+            <label class="f-label">Explain the issue</label>
+            <textarea class="f-input f-area" id="bkIssue" placeholder="Explain the issue happening to you inside the game, clear and detailed..."></textarea>
+
+            <label class="f-label">Attach Screenshot / Photo / Video <span style="font-weight:400;color:#999">(Optional)</span></label>
+            <label class="upload-box" for="bkFile">
+                <span id="bkFileText">Tap to upload image, video or PDF</span>
+                <input type="file" id="bkFile" accept="image/*,video/*,.pdf" hidden onchange="setImgName(this)" data-text="bkFileText" data-reset="Tap to upload image, video or PDF">
+            </label>
+
+            <div class="btn-row">
+                <button class="btn btn-pink btn-complain" onclick="submitBankChange()">CONFIRM</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ GAME PROBLEM SCREEN ============ -->
+    <section id="gameScreen" class="problem-screen">
+        <div class="ps-top">
+            <button class="back-btn" onclick="closeFlow('g')">‹</button>
+            <h2>Game Problem</h2>
+            <div class="ps-img"><img src="LOGO/ICONS/GAME PROBLEM.jpg" alt="Game"></div>
+        </div>
+
+        <div class="ps-body" id="gstep1">
+            <h3>Report Your Game Problem</h3>
+
+            <label class="f-label">Email ID</label>
+            <input class="f-input" type="email" id="gpEmail" placeholder="Enter your email ID">
+
+            <label class="f-label">Account Verification</label>
+            <label class="f-label sub">Registered Mobile Number</label>
+            <input class="f-input" type="tel" id="gpMobile" placeholder="Enter registered mobile number" maxlength="10" inputmode="numeric" oninput="onlyDigits(this)">
+            <label class="f-label sub">Game Password</label>
+            <input class="f-input" type="password" id="gpPass" placeholder="Enter your game password">
+
+            <label class="f-label">Explain the issue</label>
+            <textarea class="f-input f-area" id="gpIssue" placeholder="Explain the issue happening to you inside the game, clear and detailed..."></textarea>
+
+            <label class="f-label">Attach Screenshot / Photo / Video <span style="font-weight:400;color:#999">(Optional)</span></label>
+            <label class="upload-box" for="gpFile">
+                <span id="gpFileText">Tap to upload image, video or PDF</span>
+                <input type="file" id="gpFile" accept="image/*,video/*,.pdf" hidden onchange="setImgName(this)" data-text="gpFileText" data-reset="Tap to upload image, video or PDF">
+            </label>
+
+            <div class="btn-row">
+                <button class="btn btn-pink btn-complain" onclick="submitGameProblem()">CONFIRM</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ SUCCESS POPUP ============ -->
+    <div id="popup" class="popup">
+        <div class="popup-card">
+            <div class="popup-icon">✓</div>
+            <h3>Request Sent!</h3>
+            <p>Your request has been sent to the Support Team.<br>Please wait up to <b>30 Minutes</b>.</p>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

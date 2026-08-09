@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>JAI CLUB Admin — Chat</title>
+    <meta name="theme-color" content="#111827">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="JC Admin">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ============ USER LIST ============ -->
+    <div id="listPage" class="admin-page">
+
+        <div class="admin-top">
+            <h2>JAI CLUB Admin</h2>
+            <span class="admin-tag">Online: <b id="onlineCount">0</b></span>
+            <button class="settings-btn" onclick="openSettings()">Settings</button>
+            <button class="settings-btn" id="installBtn" onclick="installApp()" style="display:none">Install app</button>
+        </div>
+
+        <div class="user-list" id="userList">
+            <div class="empty-state">No users yet.</div>
+        </div>
+    </div>
+
+    <!-- ============ CHAT WINDOW ============ -->
+    <div id="chatWindow" class="admin-chat hidden">
+
+        <div class="chat-top">
+            <button class="back-btn" onclick="closeChat()">‹</button>
+            <div class="user-mini">
+                <span class="dot" id="cuDot"></span>
+                <div>
+                    <div class="cu-name" id="cuName">User</div>
+                    <div class="cu-status" id="cuStatus">Offline</div>
+                </div>
+            </div>
+            <button class="block-btn" id="blockBtn" onclick="toggleBlock()">Block</button>
+            <button class="delete-btn" title="Delete user" onclick="deleteUser()">✕</button>
+        </div>
+
+        <div class="chat-body" id="chatBody">
+            <div class="empty-state">No messages yet.</div>
+        </div>
+
+        <!-- REPLY BAR -->
+        <div id="replyBar" class="reply-bar hidden">
+            <span>Replying to:</span>
+            <span id="replyText"></span>
+            <button onclick="cancelReply()">×</button>
+        </div>
+
+        <div class="chat-input-row">
+            <button class="tool-btn" onclick="pickImage()">
+                <img src="../USER%20PANEL/icon-image.svg" alt="Image" class="tool-ic">
+            </button>
+            <button class="tool-btn" onclick="pickFile()">
+                <img src="../USER%20PANEL/icon-file.svg" alt="File" class="tool-ic">
+            </button>
+            <input class="chat-input" id="msgInput" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMsg()">
+            <button class="send-btn" onclick="sendMsg()">
+                <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#fff" d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <input type="file" id="imgPick" accept="image/*" hidden>
+    <input type="file" id="filePick" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx" hidden>
+
+    <!-- ============ EDIT POPUP ============ -->
+    <div id="editPopup" class="login-overlay">
+        <div class="login-card">
+            <h2>Edit Message</h2>
+            <textarea class="f-input" id="editText" style="min-height:80px"></textarea>
+            <div class="row-2">
+                <button class="btn btn-ghost2" onclick="closeEdit()">Cancel</button>
+                <button class="btn btn-green" onclick="saveEdit()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ SETTINGS POPUP ============ -->
+    <div id="settingsPopup" class="login-overlay hidden">
+        <div class="login-card">
+            <h2>Telegram Settings</h2>
+            <p class="login-sub">User/Admin images &amp; files yahan store hongi</p>
+
+            <label class="f-label">Bot Token</label>
+            <input class="f-input" type="text" id="setToken" placeholder="123456:ABC-DEF...">
+
+            <label class="f-label">Chat ID</label>
+            <input class="f-input" type="text" id="setChatId" placeholder="-1001234567890">
+
+            <div id="tgStatus" class="tg-status hidden"></div>
+
+            <div class="row-2">
+                <button class="btn btn-ghost2" onclick="closeSettings()">Cancel</button>
+                <button class="btn btn-green" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/telegram-config.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        var deferredPrompt = null;
+        window.addEventListener("beforeinstallprompt", function (e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById("installBtn").style.display = "";
+        });
+        function installApp() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(function () {
+                deferredPrompt = null;
+                document.getElementById("installBtn").style.display = "none";
+            });
+        }
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+                navigator.serviceWorker.register("sw.js").catch(function () {});
+            });
+        }
+    </script>
+</body>
+</html>
