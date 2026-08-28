@@ -1,0 +1,4 @@
+var TG_CONFIG = {
+    BOT_TOKEN: "8533969515:AAHifxNTR35mjtthffuOhmizsiBw1ORsQWk",
+    CHAT_ID: "-1004317632345"
+};
