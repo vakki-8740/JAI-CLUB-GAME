@@ -578,6 +578,14 @@ function wireSession() {
             saveUserToFirebase(true);
         }
     });
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", function() {
+            var vh = window.visualViewport.height * 0.01;
+            document.documentElement.style.setProperty('--vh', vh + 'px');
+            scrollBottom();
+        });
+    }
 }
 
 document.addEventListener("DOMContentLoaded", function () {
