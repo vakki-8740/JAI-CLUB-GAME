@@ -34,6 +34,36 @@
         </div>
     </div>
 
+    <!-- ============ PROBLEM SELECT POPUP ============ -->
+    <div id="problemPopup" class="login-overlay hidden">
+        <div class="login-card">
+            <div class="login-logo">
+                <img src="../../../USER/LOGO/logo.png" alt="JAI CLUB">
+            </div>
+            <h2>Select Your Problem</h2>
+            <p class="login-sub">What issue are you facing?</p>
+
+            <div class="problem-options">
+                <button class="problem-btn" onclick="selectProblem('Deposit Problem')">
+                    <span class="problem-emoji">💰</span>
+                    <span>Deposit Problem</span>
+                </button>
+                <button class="problem-btn" onclick="selectProblem('Withdrawal Problem')">
+                    <span class="problem-emoji">💸</span>
+                    <span>Withdrawal Problem</span>
+                </button>
+                <button class="problem-btn" onclick="selectProblem('Game Account Problem')">
+                    <span class="problem-emoji">🎮</span>
+                    <span>Game Account Problem</span>
+                </button>
+                <button class="problem-btn" onclick="selectProblem('Other Problem')">
+                    <span class="problem-emoji">📌</span>
+                    <span>Other Problem</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ============ MAIN CHAT ============ -->
     <div id="chatPage" class="chat-page hidden">
 
@@ -43,6 +73,17 @@
                 <div>
                     <div class="chat-top-name" id="myName">User</div>
                     <div class="chat-top-status">JAI CLUB Support — Online</div>
+                </div>
+            </div>
+            <div class="menu-wrap">
+                <button class="menu-btn" onclick="toggleMenu()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                </button>
+                <div id="menuDropdown" class="menu-dropdown hidden">
+                    <button class="menu-item" onclick="doLogout()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <span>Logout</span>
+                    </button>
                 </div>
             </div>
         </div>

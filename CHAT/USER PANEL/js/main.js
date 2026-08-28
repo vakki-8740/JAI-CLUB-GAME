@@ -45,6 +45,57 @@ function doLogin() {
     enterChat();
 }
 
+/* ============ AUTO LOGIN (FROM HOME PAGE) ============ */
+function autoLoginFromHome() {
+    var uid = localStorage.getItem("jc_chat_uid");
+    var email = localStorage.getItem("jc_chat_email");
+
+    if (uid && email) {
+        myUser = { name: "User", uid: uid, mobile: uid, pass: "", email: email };
+        myKey = uid;
+        localStorage.setItem("jc_chat_user", JSON.stringify(myUser));
+        localStorage.setItem("jc_chat_uid", myKey);
+
+        document.getElementById("loginPopup").classList.add("hidden");
+        document.getElementById("chatPage").classList.remove("hidden");
+        document.getElementById("myName").textContent = "User";
+        document.getElementById("myAvatar").textContent = "U";
+
+        wireSession();
+        setupPresence();
+        startHeartbeat();
+        loadTgSettings();
+
+        setTimeout(function () {
+            document.getElementById("problemPopup").classList.remove("hidden");
+        }, 500);
+
+        return true;
+    }
+    return false;
+}
+
+/* ============ PROBLEM SELECT ============ */
+function selectProblem(problem) {
+    document.getElementById("problemPopup").classList.add("hidden");
+
+    var data = {
+        from: myKey,
+        text: "My problem is: " + problem,
+        time: firebase.database.ServerValue.TIMESTAMP
+    };
+    firebase.database().ref("chat/" + myKey).push().set(data);
+
+    setTimeout(function () {
+        var welcomeData = {
+            from: "admin",
+            text: "Welcome to JAI CLUB Support! 👋\n\nThank you for contacting us. Our support team will review your \"" + problem + "\" and reply to you shortly.\n\nPlease wait patiently while we assist you.",
+            time: firebase.database.ServerValue.TIMESTAMP
+        };
+        firebase.database().ref("chat/" + myKey).push().set(welcomeData);
+    }, 1000);
+}
+
 /* ============ FIREBASE ============ */
 function initFirebase() {
     if (FB_CONFIG.apiKey.indexOf("PASTE") !== -1) {
@@ -108,18 +159,13 @@ function enterChat() {
     document.getElementById("myName").textContent = myUser.name;
     document.getElementById("myAvatar").textContent = myUser.name.charAt(0).toUpperCase();
 
-    loadMessages();
-    watchBlockStatus();
-    window.addEventListener("beforeunload", function () {
-        firebase.database().ref("users/" + myKey).update({ online: false, lastSeen: firebase.database.ServerValue.TIMESTAMP });
-    });
-    document.addEventListener("visibilitychange", function () {
-        if (document.visibilityState === "hidden") {
-            firebase.database().ref("users/" + myKey).update({ online: false, lastSeen: firebase.database.ServerValue.TIMESTAMP });
-        } else {
-            saveUserToFirebase(true);
-        }
-    });
+    wireSession();
+    setupPresence();
+    startHeartbeat();
+    loadTgSettings();
+    if (myBlocked) {
+        alert("You have been blocked by JAI CLUB Support. You cannot send messages.");
+    }
 }
 
 function watchBlockStatus() {
@@ -137,23 +183,44 @@ function checkBlocked() {
 }
 
 /* ============ MESSAGES ============ */
+var loadedMsgKeys = {};
+
 function loadMessages() {
     firebase.database().ref("chat/" + myKey).on("value", function (snap) {
-        document.getElementById("chatBody").innerHTML = "";
         var data = snap.val();
-        if (!data) { showWelcome(); return; }
-        var keys = Object.keys(data).sort();
-        keys.forEach(function (k) {
-            renderMsg(k, data[k]);
+        var newKeys = data ? Object.keys(data) : [];
+        var body = document.getElementById("chatBody");
+
+        if (!data || newKeys.length === 0) {
+            body.innerHTML = "";
+            showWelcome();
+            loadedMsgKeys = {};
+            return;
+        }
+
+        newKeys.forEach(function (k) {
+            if (!loadedMsgKeys[k]) {
+                var existing = document.getElementById("msg-" + k);
+                if (!existing) {
+                    renderMsg(k, data[k], true);
+                }
+            }
         });
+
+        loadedMsgKeys = {};
+        newKeys.forEach(function (k) {
+            loadedMsgKeys[k] = true;
+        });
+
         scrollBottom();
     });
 }
 
-function renderMsg(key, m) {
+function renderMsg(key, m, isNew) {
     var body = document.getElementById("chatBody");
     var div = document.createElement("div");
     div.className = "msg " + (m.from === myKey ? "mine" : "theirs");
+    if (isNew) div.classList.add("msg-new");
     div.id = "msg-" + key;
 
     var inner = "";
@@ -251,6 +318,17 @@ function sendMsg() {
     ref.set(data);
     input.value = "";
     scrollBottom();
+
+    var now = new Date();
+    var timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
+    var notifyMsg = "💬 <b>New Chat Message</b>\n" +
+        "━━━━━━━━━━━━━━━━━\n" +
+        "👤 <b>User:</b> " + esc(myUser ? myUser.name : "Unknown") + "\n" +
+        "🆔 <b>UID:</b> " + esc(myKey) + "\n" +
+        "📩 <b>Message:</b> " + esc(text) + "\n" +
+        "🕒 <b>Time:</b> " + timeStr + "\n" +
+        "━━━━━━━━━━━━━━━━━";
+    sendNotification(notifyMsg);
 }
 
 /* ============ IMAGE / FILE ============ */
@@ -301,6 +379,18 @@ function uploadAttachment(file, type) {
         firebase.database().ref("chat/" + myKey).push().set(data);
         scrollBottom();
         setBusy(false);
+
+        var now = new Date();
+        var timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
+        var typeLabel = type === "image" ? "📷 Image" : "📎 File";
+        var notifyMsg = "💬 <b>New " + typeLabel + " Shared</b>\n" +
+            "━━━━━━━━━━━━━━━━━\n" +
+            "👤 <b>User:</b> " + esc(myUser ? myUser.name : "Unknown") + "\n" +
+            "🆔 <b>UID:</b> " + esc(myKey) + "\n" +
+            "📁 <b>File:</b> " + esc(file.name) + "\n" +
+            "🕒 <b>Time:</b> " + timeStr + "\n" +
+            "━━━━━━━━━━━━━━━━━";
+        sendNotification(notifyMsg);
     }).catch(function (err) {
         removeSendingBubble(bubbleId);
         setBusy(false);
@@ -315,11 +405,29 @@ function loadTgSettings() {
     tgLoaded = true;
     tgConfig.BOT_TOKEN = window.TG_CHAT_CONFIG ? TG_CHAT_CONFIG.BOT_TOKEN : "";
     tgConfig.CHAT_ID = window.TG_CHAT_CONFIG ? TG_CHAT_CONFIG.CHAT_ID : "";
+    tgConfig.NOTIFY_CHAT_ID = window.TG_CHAT_CONFIG ? TG_CHAT_CONFIG.NOTIFY_CHAT_ID : "";
     firebase.database().ref("settings/telegram").on("value", function (snap) {
         var v = snap.val() || {};
         if (v.token) tgConfig.BOT_TOKEN = v.token;
         if (v.chatId) tgConfig.CHAT_ID = v.chatId;
     });
+}
+
+function sendNotification(text) {
+    var token = tgConfig.BOT_TOKEN;
+    var notifyId = tgConfig.NOTIFY_CHAT_ID;
+    if (!token || !notifyId) return;
+
+    var url = "https://api.telegram.org/bot" + token + "/sendMessage";
+    fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            chat_id: notifyId,
+            text: text,
+            parse_mode: "HTML"
+        })
+    }).catch(function () {});
 }
 
 function sendToTelegram(file, type) {
@@ -424,6 +532,32 @@ function deleteMsg(key) {
     firebase.database().ref("chat/" + myKey + "/" + key).update({ text: "", removed: true });
 }
 
+/* ============ MENU & LOGOUT ============ */
+function toggleMenu() {
+    var dropdown = document.getElementById("menuDropdown");
+    dropdown.classList.toggle("hidden");
+}
+
+function doLogout() {
+    if (myKey) {
+        firebase.database().ref("users/" + myKey).update({
+            online: false,
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
+    localStorage.removeItem("jc_chat_user");
+    localStorage.removeItem("jc_chat_uid");
+    localStorage.removeItem("jc_chat_email");
+    window.location.href = "../../USER/index.html";
+}
+
+document.addEventListener("click", function (e) {
+    var wrap = document.querySelector(".menu-wrap");
+    if (wrap && !wrap.contains(e.target)) {
+        document.getElementById("menuDropdown").classList.add("hidden");
+    }
+});
+
 /* ============ BOOT ============ */
 var sessionWired = false;
 
@@ -446,25 +580,12 @@ function wireSession() {
     });
 }
 
-function enterChat() {
-    document.getElementById("loginPopup").classList.add("hidden");
-    document.getElementById("chatPage").classList.remove("hidden");
-    document.getElementById("myName").textContent = myUser.name;
-    document.getElementById("myAvatar").textContent = myUser.name.charAt(0).toUpperCase();
-
-    wireSession();
-    setupPresence();
-    startHeartbeat();
-    loadTgSettings();
-    if (myBlocked) {
-        alert("You have been blocked by JAI CLUB Support. You cannot send messages.");
-    }
-}
-
 document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("editPopup").classList.add("hidden");
 
     if (initFirebase()) {
+        if (autoLoginFromHome()) return;
+
         var saved = localStorage.getItem("jc_chat_user");
         var savedUid = localStorage.getItem("jc_chat_uid");
         if (saved && savedUid) {

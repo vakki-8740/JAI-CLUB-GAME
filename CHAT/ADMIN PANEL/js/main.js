@@ -7,6 +7,7 @@ var lastMsg = {};
 var tgConfig = { BOT_TOKEN: "", CHAT_ID: "" };
 var tgLoaded = false;
 var busyUpload = false;
+var loadedMsgKeys = {};
 
 function esc(s) {
     return String(s == null ? "" : s)
@@ -37,7 +38,7 @@ function lastSeenText(u) {
 
 function initFirebase() {
     if (FB_CONFIG.apiKey.indexOf("PASTE") !== -1) {
-        document.getElementById("userList").innerHTML = '<div class="empty-state">Firebase not configured. Add your Firebase settings in js/firebase-config.js</div>';
+        document.getElementById("userList").innerHTML = '<div class="empty-state"><p>Firebase not configured</p><span>Add your Firebase settings in js/firebase-config.js</span></div>';
         return false;
     }
     firebase.initializeApp(FB_CONFIG);
@@ -62,27 +63,60 @@ function watchCurrentUserStatus(key) {
         app[key] = u;
         currentUser = u;
         var onlineNow = isOnline(u);
-        document.getElementById("cuDot").className = "dot" + (onlineNow ? " online" : "");
-        document.getElementById("cuStatus").textContent = u.blocked ? "Blocked" : (onlineNow ? "Online" : "Last seen " + lastSeenText(u));
-        document.getElementById("blockBtn").textContent = u.blocked ? "Unblock" : "Block";
-        document.getElementById("blockBtn").classList.toggle("blocked", !!u.blocked);
+        var cuDot = document.getElementById("cuDot");
+        var cuStatus = document.getElementById("cuStatus");
+        if (cuDot) cuDot.className = "dot" + (onlineNow ? " online" : "");
+        if (cuStatus) {
+            cuStatus.textContent = u.blocked ? "Blocked" : (onlineNow ? "Online" : "Last seen " + lastSeenText(u));
+            cuStatus.className = "cu-status" + (onlineNow ? " online" : "");
+        }
+        var blockBtn = document.getElementById("blockBtn");
+        if (blockBtn) {
+            blockBtn.querySelector("span").textContent = u.blocked ? "Unblock" : "Block";
+            blockBtn.classList.toggle("blocked", !!u.blocked);
+        }
     });
+}
+
+function getUserLastMsg(key) {
+    var chatData = null;
+    firebase.database().ref("chat/" + key).orderByKey().limitToLast(1).once("value", function (snap) {
+        chatData = snap.val();
+    });
+    if (!chatData) return "";
+    var keys = Object.keys(chatData);
+    if (keys.length === 0) return "";
+    var m = chatData[keys[0]];
+    if (m.type === "image") return "📷 Image";
+    if (m.type === "file") return "📎 " + (m.fileName || "File");
+    return m.text || "";
 }
 
 function renderUsers() {
     var list = document.getElementById("userList");
+    var searchTerm = document.getElementById("searchInput").value.toLowerCase();
     list.innerHTML = "";
     var online = 0;
 
     var keys = Object.keys(app).sort();
-    if (keys.length === 0) {
-        list.innerHTML = '<div class="empty-state">No users yet.</div>';
+    var filteredKeys = keys.filter(function (k) {
+        var u = app[k];
+        var name = (u.name || "").toLowerCase();
+        var uid = (u.uid || "").toLowerCase();
+        return name.indexOf(searchTerm) !== -1 || uid.indexOf(searchTerm) !== -1;
+    });
+
+    if (filteredKeys.length === 0) {
+        list.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><p>' + (searchTerm ? "No users found" : "No users yet") + '</p><span>Users will appear here when they start chatting</span></div>';
+        document.getElementById("onlineCount").textContent = "0";
+        return;
     }
 
-    keys.forEach(function (k) {
+    filteredKeys.forEach(function (k) {
         var u = app[k];
         var onlineNow = isOnline(u);
         if (onlineNow) online++;
+
         var item = document.createElement("div");
         item.className = "user-item";
 
@@ -92,12 +126,19 @@ function renderUsers() {
         else badge = '<span class="status-badge offline">Offline</span>';
 
         var last = lastSeenText(u);
+        var initial = u.name ? u.name.charAt(0).toUpperCase() : "U";
 
         item.innerHTML =
-            '<div class="user-ava">' + esc(u.name ? u.name.charAt(0).toUpperCase() : "U") + "</div>" +
+            '<div class="user-ava">' + esc(initial) + "</div>" +
             '<div class="user-info">' +
                 '<div class="user-name">' + esc(u.name || "Unknown") + "</div>" +
-                '<div class="user-meta">UID: ' + esc(u.uid || "-") + " | Last seen: " + last + "</div>" +
+                '<div class="user-meta">' +
+                    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h6"/></svg> ' +
+                    esc(u.uid || "-") +
+                    ' <span style="color:#cbd5e1">|</span> ' +
+                    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ' +
+                    last +
+                "</div>" +
             "</div>" +
             badge;
 
@@ -108,26 +149,35 @@ function renderUsers() {
     document.getElementById("onlineCount").textContent = online;
 }
 
+function filterUsers() {
+    renderUsers();
+}
+
 /* ============ OPEN CHAT ============ */
 function openChat(key) {
     if (!app[key]) return;
     currentKey = key;
     currentUser = app[key];
     replyTo = null;
+    loadedMsgKeys = {};
     cancelReply();
 
     document.getElementById("listPage").classList.add("hidden");
     document.getElementById("chatWindow").classList.remove("hidden");
 
     document.getElementById("cuName").textContent = currentUser.name || "User";
-    document.getElementById("cuDot").className = "dot" + (isOnline(currentUser) ? " online" : "");
-    document.getElementById("cuStatus").textContent = currentUser.blocked ? "Blocked" : (isOnline(currentUser) ? "Online" : "Last seen " + lastSeenText(currentUser));
-    watchCurrentUserStatus(key);
+    document.getElementById("cuAvatar").textContent = (currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "U");
+
+    var onlineNow = isOnline(currentUser);
+    var cuStatus = document.getElementById("cuStatus");
+    cuStatus.textContent = currentUser.blocked ? "Blocked" : (onlineNow ? "Online" : "Last seen " + lastSeenText(currentUser));
+    cuStatus.className = "cu-status" + (onlineNow ? " online" : "");
 
     var blockBtn = document.getElementById("blockBtn");
-    blockBtn.textContent = currentUser.blocked ? "Unblock" : "Block";
+    blockBtn.querySelector("span").textContent = currentUser.blocked ? "Unblock" : "Block";
     blockBtn.classList.toggle("blocked", !!currentUser.blocked);
 
+    watchCurrentUserStatus(key);
     loadMessages(key);
 }
 
@@ -135,23 +185,38 @@ function openChat(key) {
 function loadMessages(key) {
     firebase.database().ref("chat/" + key).on("value", function (snap) {
         var body = document.getElementById("chatBody");
-        body.innerHTML = "";
         var data = snap.val();
+
         if (!data) {
-            body.innerHTML = '<div class="empty-state">No messages yet.</div>';
+            body.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>No messages yet</p></div>';
+            loadedMsgKeys = {};
             return;
         }
-        Object.keys(data).sort().forEach(function (k2) {
-            renderMsg(k2, data[k2]);
+
+        var newKeys = Object.keys(data);
+        newKeys.forEach(function (k) {
+            if (!loadedMsgKeys[k]) {
+                var existing = document.getElementById("msg-" + k);
+                if (!existing) {
+                    renderMsg(k, data[k], true);
+                }
+            }
         });
+
+        loadedMsgKeys = {};
+        newKeys.forEach(function (k) {
+            loadedMsgKeys[k] = true;
+        });
+
         scrollBottom();
     });
 }
 
-function renderMsg(key, m) {
+function renderMsg(key, m, isNew) {
     var body = document.getElementById("chatBody");
     var div = document.createElement("div");
     div.className = "msg " + (m.from === currentKey ? "theirs" : "mine");
+    if (isNew) div.classList.add("msg-new");
     div.id = "msg-" + key;
 
     var inner = "";
@@ -258,7 +323,9 @@ function openSettings() {
     loadTgSettings();
     document.getElementById("setToken").value = tgConfig.BOT_TOKEN || "";
     document.getElementById("setChatId").value = tgConfig.CHAT_ID || "";
-    document.getElementById("tgStatus").classList.add("hidden");
+    var status = document.getElementById("tgStatus");
+    status.classList.add("hidden");
+    status.className = "tg-status hidden";
     document.getElementById("settingsPopup").classList.remove("hidden");
 }
 
@@ -269,41 +336,44 @@ function closeSettings() {
 function saveSettings() {
     var token = document.getElementById("setToken").value.trim();
     var chatId = document.getElementById("setChatId").value.trim();
+    var status = document.getElementById("tgStatus");
+
     if (!token || !chatId) {
-        document.getElementById("tgStatus").textContent = "Bot Token aur Chat ID dono bharna zaroori hai.";
-        document.getElementById("tgStatus").style.color = "#dc2626";
-        document.getElementById("tgStatus").classList.remove("hidden");
+        status.textContent = "Bot Token and Chat ID both are required.";
+        status.className = "tg-status error";
+        status.classList.remove("hidden");
         return;
     }
+
     tgConfig.BOT_TOKEN = token;
     tgConfig.CHAT_ID = chatId;
     firebase.database().ref("settings/telegram").set({ token: token, chatId: chatId });
-    document.getElementById("tgStatus").textContent = "Saved & set. Telegram channel me test send kiya ja raha hai...";
-    document.getElementById("tgStatus").style.color = "#16a34a";
-    document.getElementById("tgStatus").classList.remove("hidden");
+    status.textContent = "Saving...";
+    status.className = "tg-status success";
+    status.classList.remove("hidden");
 
     testTelegram(token, chatId);
 }
 
 function testTelegram(token, chatId) {
+    var status = document.getElementById("tgStatus");
     var fd = new FormData();
     fd.append("chat_id", chatId);
-    fd.append("text", "JAI CLUB chat connected - test message");
+    fd.append("text", "JAI CLUB Admin Panel connected ✅");
     fetch("https://api.telegram.org/bot" + token + "/sendMessage", { method: "POST", body: fd })
         .then(function (r) { return r.json(); })
         .then(function (j) {
-            var st = document.getElementById("tgStatus");
             if (j.ok) {
-                st.textContent = "Connected! Telegram channel par test message bhej diya gaya hai.";
+                status.textContent = "Connected! Test message sent successfully.";
+                status.className = "tg-status success";
             } else {
-                st.textContent = "Incorrect token or chat ID: " + (j.description || "unknown error");
-                st.style.color = "#dc2626";
+                status.textContent = "Error: " + (j.description || "Invalid token or chat ID");
+                status.className = "tg-status error";
             }
         })
         .catch(function () {
-            var st = document.getElementById("tgStatus");
-            st.textContent = "Network error. Check internet.";
-            st.style.color = "#dc2626";
+            status.textContent = "Network error. Check your internet.";
+            status.className = "tg-status error";
         });
 }
 
@@ -363,12 +433,11 @@ function uploadAttachment(file, type) {
     });
 }
 
-/* ============ TELEGRAM (files channel me store) ============ */
 function sendToTelegram(file, type) {
     var token = tgConfig.BOT_TOKEN;
     var chatId = tgConfig.CHAT_ID;
     if (!token || !chatId) {
-        alert("Telegram channels ki settings pehle daalo (Settings button).");
+        alert("Please configure Telegram in Settings first.");
         return Promise.reject("no tg config");
     }
     var fd = new FormData();
@@ -471,15 +540,16 @@ function toggleBlock() {
     var newVal = !app[currentKey].blocked;
     firebase.database().ref("users/" + currentKey).update({ blocked: newVal });
     app[currentKey].blocked = newVal;
-    document.getElementById("blockBtn").textContent = newVal ? "Unblock" : "Block";
+    document.getElementById("blockBtn").querySelector("span").textContent = newVal ? "Unblock" : "Block";
     document.getElementById("blockBtn").classList.toggle("blocked", newVal);
-    document.getElementById("cuStatus").textContent = newVal ? "Blocked" : (app[currentKey].online ? "Online" : "Offline");
+    var cuStatus = document.getElementById("cuStatus");
+    cuStatus.textContent = newVal ? "Blocked" : (app[currentKey].online ? "Online" : "Offline");
 }
 
 function deleteUser() {
     if (!currentKey) return;
     var name = app[currentKey].name || "this user";
-    if (!confirm("Delete " + name + "? This removes the user and all their chats. This cannot be undone.")) return;
+    if (!confirm("Delete " + name + "? This removes the user and all their chats.")) return;
     firebase.database().ref("users/" + currentKey).remove();
     firebase.database().ref("chat/" + currentKey).remove();
     closeChat();
@@ -504,8 +574,11 @@ document.addEventListener("DOMContentLoaded", function () {
             if (currentKey && currentUser) {
                 var u = currentUser;
                 var onlineNow = isOnline(u);
-                document.getElementById("cuDot").className = "dot" + (onlineNow ? " online" : "");
-                document.getElementById("cuStatus").textContent = u.blocked ? "Blocked" : (onlineNow ? "Online" : "Last seen " + lastSeenText(u));
+                var cuStatus = document.getElementById("cuStatus");
+                if (cuStatus) {
+                    cuStatus.textContent = u.blocked ? "Blocked" : (onlineNow ? "Online" : "Last seen " + lastSeenText(u));
+                    cuStatus.className = "cu-status" + (onlineNow ? " online" : "");
+                }
             }
         }, 10000);
     }
